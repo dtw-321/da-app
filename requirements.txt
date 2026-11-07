@@ -1,0 +1,15 @@
+# Docker/resolusi dependency untuk Python 3.8 (versi dibatasi agar tetap kompatibel)
+fastapi>=0.110.0,<0.116.0
+uvicorn[standard]>=0.23.0,<0.31.0
+pydantic>=1.10.0,<3.0.0
+pydantic-settings==2.0.0
+SQLAlchemy>=1.4.0,<2.1.0
+pandas>=1.3.0,<2.1.0
+numpy>=1.21.0,<1.25.0
+openpyxl>=3.0.10,<3.2.0
+python-multipart>=0.0.6,<0.1.0
+python-dotenv>=0.21.0,<1.1.0
+pytest>=7.0.0,<8.1.0
+# Driver database opsional (aktifkan sesuai kebutuhan):
+# psycopg2-binary>=2.9,<3.0
+PyMySQL>=1.0,<2.0

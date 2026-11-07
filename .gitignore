@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+*.db
+*.sqlite3
+storage/uploads/*
+storage/exports/*
+!storage/**/.gitkeep
+.pytest_cache/
+.idea/
+.vscode/
+.DS_Store
+scaffold.py
+

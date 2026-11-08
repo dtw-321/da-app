@@ -176,11 +176,34 @@ createApp({
       });
     };
     const viewNode = async (id) => { if (!results.value[id]) await run(id); openPreview(id); };
-    const hasFile = (id) => !!(results.value[id] && (results.value[id].files || []).length);
-    const downloadNode = (id) => {
-      const files = (results.value[id] || {}).files || [];
-      if (files.length) window.open(files[0].url, '_blank');
+    
+    // FUNGSI INI YANG AKAN MEMBACA `self.files` DARI PYTHON DAN MENTRIGGER DOWNLOAD
+    const hasFile = (id) => {
+        const node = nodes.value.find(n => n.id === id);
+        // Tampilkan tombol 📥 HANYA JIKA node adalah Export (Excel/CSV) 
+        // dan statusnya sudah 'SUCCESS' di backend (results terisi)
+        return node && 
+               (node.type === 'export_excel' || node.type === 'export_csv') && 
+               !!results.value[id];
     };
+
+    const downloadNode = (id) => {
+      const node = nodes.value.find(n => n.id === id);
+      if (node && node.config && node.config.filename) {
+          // Ambil nama file dari apa yang diketik oleh pengguna di inspector
+          let fname = node.config.filename;
+          
+          // Pastikan ekstensi sesuai
+          if (node.type === 'export_excel' && !fname.endsWith('.xlsx')) fname += '.xlsx';
+          if (node.type === 'export_csv' && !fname.endsWith('.csv')) fname += '.csv';
+          
+          // Langsung arahkan ke API endpoint download
+          window.open(`/api/workflow/download/${encodeURIComponent(fname)}`, '_blank');
+      } else {
+          notify("Konfigurasi nama file kosong", "error");
+      }
+    };
+    
     const statusOf = (id) => (nodeStatus.value[id] || {}).status || 'idle';
     const nodeClass = (n) => [statusOf(n.id), { selected: selectedId.value === n.id }];
     const fmt = (v) => (v === null || v === undefined ? '—' : (typeof v === 'object' ? JSON.stringify(v) : v));

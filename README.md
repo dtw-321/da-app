@@ -1,6 +1,6 @@
 # DTAnalitycs Web Studio Engine
 
-Aplikasi **data analytics visual berbasis node** (terinspirasi DTAnalitycs) dengan arsitektur
+Aplikasi **data analytics visual** dengan arsitektur
 **DAG executor** di backend dan **canvas drag-and-drop** di frontend.
 
 - **Backend**: Python 3.8+, FastAPI, SQLAlchemy, pandas

@@ -1,54 +1,65 @@
-from typing import List
-
+import os
 import pandas as pd
-
-from app.core.paths import EXPORT_DIR, ensure_dirs, export_path
+from typing import List
 from app.engine.nodes.base_node import BaseNode, NodeExecutionError, register_node
 
+EXPORT_DIR = os.path.join(os.getcwd(), "storage", "exports")
+os.makedirs(EXPORT_DIR, exist_ok=True)
 
-class _BaseExport(BaseNode):
+@register_node("export_csv")
+class ExportCsvNode(BaseNode):
+    title = "Export CSV"
     category = "exports"
     min_inputs = 1
     max_inputs = 1
-    extension = "csv"
     config_schema = [
-        {"name": "fileName", "label": "Nama File Hasil (tanpa ekstensi)", "type": "text", "default": "export_data"},
+        {"name": "filename", "label": "Nama File", "type": "text", "default": "output.csv"}
     ]
-
-    def _write(self, df: pd.DataFrame, path) -> None:
-        raise NotImplementedError
 
     def execute(self, inputs: List[pd.DataFrame]) -> pd.DataFrame:
-        df = inputs[0].copy()
-        ensure_dirs()
-        name = "{}.{}".format(self.cfg("fileName", "export_data"), self.extension)
-        path = export_path(name)
+        if not inputs:
+            raise NodeExecutionError("Export membutuhkan input tabel data.")
+            
+        df = inputs[0]
+        filename = self.cfg("filename", "output.csv")
+        if not filename.endswith(".csv"):
+            filename += ".csv"
+            
+        file_path = os.path.join(EXPORT_DIR, filename)
+        
         try:
-            self._write(df, path)
-        except Exception as exc:
-            raise NodeExecutionError("Gagal menulis file {}: {}".format(path.name, exc))
-        self.artifacts.append({"fileName": path.name, "url": "/api/workflow/download/{}".format(path.name)})
-        return df
-
-
-@register_node("export_csv")
-class ExportCsvNode(_BaseExport):
-    title = "Export CSV"
-    description = "Menyimpan hasil ke storage/exports/*.csv"
-    extension = "csv"
-    config_schema = _BaseExport.config_schema + [
-        {"name": "delimiter", "label": "Delimiter", "type": "text", "default": ","},
-    ]
-
-    def _write(self, df: pd.DataFrame, path) -> None:
-        df.to_csv(path, index=False, sep=str(self.cfg("delimiter", ",")))
+            df.to_csv(file_path, index=False)
+        except Exception as e:
+            raise NodeExecutionError(f"Gagal menyimpan CSV: {str(e)}")
+            
+        return df  # <--- WAJIB MENGEMBALIKAN DATAFRAME
 
 
 @register_node("export_excel")
-class ExportExcelNode(_BaseExport):
+class ExportExcelNode(BaseNode):
     title = "Export Excel"
-    description = "Menyimpan hasil ke storage/exports/*.xlsx"
-    extension = "xlsx"
+    category = "exports"
+    min_inputs = 1
+    max_inputs = 1
+    config_schema = [
+        {"name": "filename", "label": "Nama File", "type": "text", "default": "output.xlsx"},
+        {"name": "sheetName", "label": "Nama Sheet", "type": "text", "default": "Sheet1"}
+    ]
 
-    def _write(self, df: pd.DataFrame, path) -> None:
-        df.to_excel(path, index=False)
+    def execute(self, inputs: List[pd.DataFrame]) -> pd.DataFrame:
+        if not inputs:
+            raise NodeExecutionError("Export membutuhkan input tabel data.")
+            
+        df = inputs[0]
+        filename = self.cfg("filename", "output.xlsx")
+        if not filename.endswith((".xlsx", ".xls")):
+            filename += ".xlsx"
+            
+        file_path = os.path.join(EXPORT_DIR, filename)
+        
+        try:
+            df.to_excel(file_path, index=False, sheet_name=self.cfg("sheetName", "Sheet1"))
+        except Exception as e:
+            raise NodeExecutionError(f"Gagal menyimpan Excel: {str(e)}")
+            
+        return df  # <--- WAJIB MENGEMBALIKAN DATAFRAME

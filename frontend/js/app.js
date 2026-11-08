@@ -3,7 +3,7 @@ const { createApp, ref, reactive, computed, onMounted, watch } = Vue;
 
 const API = '/api/workflow';
 const NODE_W = 176, NODE_H = 96, CANVAS_SIZE = 4000;
-const CATEGORY_LABEL = { sources: 'Data Sources', transforms: 'Transformations', exports: 'Exports' };
+const CATEGORY_LABEL = { sources: 'Data Sources', transforms: 'Transformations', exports: 'Exports', utilities: 'utilities' };
 const STORAGE_KEY = 'dtanalitycs-studio-graph';
 
 createApp({

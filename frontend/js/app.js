@@ -9,6 +9,7 @@ const STORAGE_KEY = 'dtanalitycs-studio-graph';
 createApp({
   setup() {
     const specs = ref([]), nodes = ref([]), connections = ref([]);
+    const pandasDocModal = ref(false);
     const selectedId = ref(null), results = ref({}), nodeStatus = ref({}), logs = ref([]);
     const running = ref(false), search = ref(''), scale = ref(1), showLogs = ref(true);
     const workflowId = ref(null), workflowName = ref('Untitled Workflow');
@@ -16,6 +17,8 @@ createApp({
     const preview = reactive({ open: false, title: '', columns: [], rows: [], total: 0, truncated: false });
     const pythonModal = reactive({ open: false, code: '' });
     const openModal = reactive({ open: false, items: [] });
+    const showSidebar = ref(true);
+    const showInspector = ref(true);
     let drag = null, toastTimer = null;
 
     /* ---------------- helpers ---------------- */
@@ -306,7 +309,8 @@ createApp({
     return {
       specs, nodes, connections, selectedId, selectedNode, selectedSchema, results, nodeStatus, logs,
       running, search, scale, showLogs, workflowName, workflowId, linking, pointer, toast, preview,
-      pythonModal, openModal, categories, tempPath, canvasSize: CANVAS_SIZE,
+      pythonModal, openModal, categories, tempPath, canvasSize: CANVAS_SIZE,showSidebar, showInspector,
+      pandasDocModal,
       onCatalogDragStart, onCanvasDrop, addNodeCenter, onNodeMouseDown, onCanvasMouseDown,
       onPortOut, onPortIn, removeNode, removeConnection, clearCanvas, pathFor, nodeClass, statusOf,
       run, viewNode, hasFile, downloadNode, fmt, saveWorkflow, openList, loadWorkflow,

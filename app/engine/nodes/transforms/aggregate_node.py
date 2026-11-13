@@ -1,40 +1,75 @@
-from typing import List
-
 import pandas as pd
-
+from typing import List
 from app.engine.nodes.base_node import BaseNode, NodeExecutionError, register_node, split_columns
-
-FUNC_MAP = {"SUM": "sum", "AVG": "mean", "COUNT": "count", "MIN": "min", "MAX": "max", "MEDIAN": "median"}
-
 
 @register_node("aggregate")
 class AggregateNode(BaseNode):
     title = "Aggregate"
     category = "transforms"
-    description = "Group by + agregasi numerik."
+    description = "Mengelompokkan data berdasarkan kolom tertentu dan melakukan perhitungan atau penggabungan teks."
     min_inputs = 1
     max_inputs = 1
     config_schema = [
-        {"name": "groupBy", "label": "Group By (pisah koma)", "type": "text", "default": "kategori"},
-        {"name": "targetColumn", "label": "Kolom Target", "type": "text", "default": "penjualan"},
-        {"name": "aggFunction", "label": "Fungsi", "type": "select",
-         "options": list(FUNC_MAP.keys()), "default": "SUM"},
+        {
+            "name": "groupColumns", 
+            "label": "Kolom Group By (pisah koma)", 
+            "type": "text", 
+            "default": ""
+        },
+        {
+            "name": "targetColumn", 
+            "label": "Kolom Target Agregasi", 
+            "type": "text", 
+            "default": ""
+        },
+        {
+            "name": "aggFunction", 
+            "label": "Fungsi Agregasi", 
+            "type": "select", 
+            "options": ["sum", "mean", "count", "max", "min", "concat"], 
+            "default": "sum"
+        },
+        {
+            "name": "separator", 
+            "label": "Karakter Pemisah (Khusus Concat)", 
+            "type": "text", 
+            "default": ", "
+        }
     ]
 
     def execute(self, inputs: List[pd.DataFrame]) -> pd.DataFrame:
-        df = inputs[0].copy()
-        groups = split_columns(self.cfg("groupBy"))
-        target = str(self.cfg("targetColumn", "")).strip()
-        label = str(self.cfg("aggFunction", "SUM")).upper()
-        func = FUNC_MAP.get(label)
-        if func is None:
-            raise NodeExecutionError("Fungsi agregasi tidak dikenal: {}".format(label))
-        if not target:
-            raise NodeExecutionError("Kolom target agregasi belum diisi.")
-        self.require_columns(df, groups + [target])
-        if df.empty:
-            return pd.DataFrame(columns=groups + ["{}_{}".format(label, target)])
-        if func != "count":
-            df[target] = pd.to_numeric(df[target], errors="coerce")
-        result = df.groupby(groups, dropna=False)[target].agg(func).reset_index()
-        return result.rename(columns={target: "{}_{}".format(label, target)})
+        if not inputs:
+            raise NodeExecutionError("Aggregate membutuhkan input tabel data dari node sebelumnya.")
+            
+        df = inputs[0]
+        
+        # Membaca konfigurasi dari UI
+        group_cols_raw = self.cfg("groupColumns", "")
+        target_col = self.cfg("targetColumn", "").strip()
+        agg_type = self.cfg("aggFunction", "sum")
+        separator = self.cfg("separator", ", ")
+        
+        group_cols = split_columns(group_cols_raw)
+        
+        if not group_cols or not target_col:
+            raise NodeExecutionError("Kolom 'Group By' dan 'Kolom Target' wajib diisi.")
+            
+        # Validasi ketersediaan kolom di dalam tabel
+        self.require_columns(df, group_cols + [target_col])
+        
+        try:
+            # Penentuan fungsi agregasi
+            if agg_type == "concat":
+                # Mengubah data menjadi string, membuang baris kosong (NaN), dan menggabungkannya
+                agg_func = lambda x: separator.join(x.dropna().astype(str))
+            else:
+                # Menggunakan fungsi bawaan pandas (sum, mean, dll)
+                agg_func = agg_type
+                
+            # Mengeksekusi proses agregasi
+            result_df = df.groupby(group_cols, as_index=False).agg({target_col: agg_func})
+            
+            return result_df
+            
+        except Exception as e:
+            raise NodeExecutionError(f"Gagal melakukan proses agregasi: {str(e)}")

@@ -70,3 +70,46 @@ td.idx{color:#94a3b8}
 .wf-row:hover{background:#f8fafc}
 .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#1f2937;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;z-index:99}
 .toast.error{background:#b91c1c}.toast.success{background:#15803d}
+/* --- Floating Toggle Buttons --- */
+.fab {
+  position: fixed; /* Bisa juga absolute jika parent-nya punya position: relative */
+  top: 70px;       /* Jarak dari topbar */
+  background: #ffffff;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  font-size: 18px;
+  transition: all 0.2s ease-in-out;
+}
+
+.fab:hover {
+  background: #f8fafc;
+  color: #2563eb;
+  border-color: #93c5fd;
+  transform: scale(1.05);
+}
+
+.fab:active {
+  transform: scale(0.95);
+}
+
+/* Penempatan Kiri & Kanan */
+.fab-left {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+}
+
+.fab-right {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+}

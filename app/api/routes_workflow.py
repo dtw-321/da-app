@@ -108,21 +108,46 @@ def download_export_file(filename: str) -> FileResponse:
 
 
 @router.post("/save")
-def save_workflow(payload: WorkflowPayload, db: Session = Depends(get_db)) -> Dict[str, Any]:
-    graph = payload.to_graph()
-    wf = db.query(WorkflowModel).filter(WorkflowModel.id == payload.workflowId).first() if payload.workflowId else None
-    if wf is None:
-        wf = WorkflowModel(name=payload.workflowName or "Untitled Workflow",
-                           description=payload.description, graph_data=graph)
-        db.add(wf)
+def save_workflow(payload: dict, db: Session = Depends(get_db)):
+    # Ambil payload yang dikirim dari fungsi payload() di app.js
+    workflow_name = payload.get("workflowName", "Untitled Workflow").strip()
+    
+    graph_data = {
+        "nodes": payload.get("nodes", []),
+        "connections": payload.get("connections", [])
+    }
+    
+    # 1. Cek apakah workflow dengan nama tersebut sudah ada di DB
+    existing_workflow = db.query(WorkflowModel).filter(WorkflowModel.name == workflow_name).first()
+    
+    if existing_workflow:
+        # 2A. UPDATE JIKA UNIQUE (Nama sudah terdaftar)
+        existing_workflow.graph_data = graph_data
+        db.commit()
+        db.refresh(existing_workflow)
+        
+        return {
+            "status": "success", 
+            "message": f"Workflow '{workflow_name}' berhasil diperbarui.", 
+            "id": existing_workflow.id
+        }
     else:
-        wf.name = payload.workflowName or wf.name
-        wf.description = payload.description
-        wf.graph_data = graph
-    db.commit()
-    db.refresh(wf)
-    return {"status": "success", "id": wf.id, "name": wf.name}
-
+        # 2B. INSERT (Nama belum terdaftar)
+        new_id = str(uuid.uuid4())
+        new_workflow = WorkflowModel(
+            id=new_id,
+            name=workflow_name,
+            graph_data=graph_data
+        )
+        db.add(new_workflow)
+        db.commit()
+        db.refresh(new_workflow)
+        
+        return {
+            "status": "success", 
+            "message": f"Workflow '{workflow_name}' baru berhasil disimpan.", 
+            "id": new_workflow.id
+        }
 
 @router.get("/list")
 def list_workflows(db: Session = Depends(get_db)) -> List[Dict[str, Any]]:

@@ -14,7 +14,7 @@ class WorkflowModel(Base):
     __tablename__ = "workflows"
 
     id = Column(String(36), primary_key=True, default=_uuid)
-    name = Column(String(255), nullable=False, index=True)
+    name = Column(String(255), unique=True, nullable=False, index=True)
     description = Column(Text, nullable=True)
     graph_data = Column(JSON, nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)

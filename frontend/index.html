@@ -1,168 +1,275 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>DTAnalitycs Web Studio Engine Pro</title>
-<link rel="stylesheet" href="css/app.css">
-<script src="https://unpkg.com/vue@3.4.38/dist/vue.global.prod.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DTAnalitycs Web Studio Engine Pro</title>
+  <link rel="stylesheet" href="css/app.css">
+  <script src="js/vue.global.prod.js"></script>
 </head>
+
 <body>
-<div id="app" v-cloak>
-  <header class="topbar">
-    <div class="brand">DTAnalitycs<span>Web Studio</span> <em>v3.1</em></div>
-    <input class="wf-name" v-model="workflowName" placeholder="Nama workflow">
-    <div class="tools">
-      <button class="btn primary" :disabled="running" @click="run(null)">{{ running ? '⏳ Running…' : '▶ Run All' }}</button>
-      <button class="btn" @click="saveWorkflow">💾 Save</button>
-      <button class="btn" @click="openList">📂 Open</button>
-      <button class="btn" @click="exportJson">⬇ Export</button>
-      <button class="btn" @click="$refs.importInput.click()">⬆ Import</button>
-      <button class="btn" @click="generatePython">🐍 Python</button>
-      <button class="btn danger" @click="clearCanvas">🗑 Clear</button>
-      <input type="file" accept="application/json" ref="importInput" hidden @change="importJson">
-    </div>
-  </header>
-
-  <main class="workspace">
-    <aside class="sidebar">
-      <h3>Katalog Node</h3>
-      <input class="search" v-model="search" placeholder="Cari node…">
-      <div v-if="!specs.length" class="muted">Memuat spesifikasi node…</div>
-      <div v-for="group in categories" :key="group.name" class="group">
-        <div class="group-title">{{ group.label }}</div>
-        <div v-for="spec in group.items" :key="spec.type" class="catalog-item" draggable="true"
-             @dragstart="onCatalogDragStart($event, spec)" @dblclick="addNodeCenter(spec)" :title="spec.description">
-          {{ spec.title }}
-        </div>
+  <div id="app" v-cloak>
+    <header class="topbar">
+      <div class="brand">DTAnalitycs<span>Web Studio</span> <em>v3.1</em></div>
+      <input class="wf-name" v-model="workflowName" placeholder="Nama workflow">
+      <div class="tools">
+        <button class="btn primary" :disabled="running" @click="run(null)">{{ running ? '⏳ Running…' : '▶ Run All'
+          }}</button>
+        <button class="btn" @click="saveWorkflow">💾 Save</button>
+        <button class="btn" @click="openList">📂 Open</button>
+        <button class="btn" @click="exportJson">⬇ Export</button>
+        <button class="btn" @click="$refs.importInput.click()">⬆ Import</button>
+        <button class="btn" @click="generatePython">🐍 Python</button>
+        <button class="btn danger" @click="clearCanvas">🗑 Clear</button>
+        <input type="file" accept="application/json" ref="importInput" hidden @change="importJson">
       </div>
-    </aside>
+    </header>
 
-    <section class="canvas-wrap" @dragover.prevent @drop.prevent="onCanvasDrop" @mousedown="onCanvasMouseDown">
-      <div id="canvas" :style="{ transform: 'scale(' + scale + ')', width: canvasSize + 'px', height: canvasSize + 'px' }">
-        <svg class="edges" :width="canvasSize" :height="canvasSize">
-          <g v-for="(c, i) in connections" :key="i">
-            <path :d="pathFor(c)" class="edge"></path>
-            <path :d="pathFor(c)" class="edge-hit" @click.stop="removeConnection(i)"><title>Klik untuk hapus koneksi</title></path>
-          </g>
-          <path v-if="linking" :d="tempPath" class="edge-temp"></path>
-        </svg>
-
-        <div v-for="n in nodes" :key="n.id" class="node" :class="nodeClass(n)"
-             :style="{ left: n.x + 'px', top: n.y + 'px' }" @mousedown.stop="onNodeMouseDown($event, n)">
-          <div class="port in" :class="{ active: !!linking }" title="Input" @mousedown.stop @click.stop="onPortIn(n)"></div>
-          <div class="node-head">
-            <span class="node-title">{{ n.title }}</span>
-            <button class="icon" @mousedown.stop @click.stop="removeNode(n.id)">✕</button>
+    <main class="workspace">
+      <aside class="sidebar" v-show="showSidebar">
+        <h3>Katalog Node</h3>
+        <input class="search" v-model="search" placeholder="Cari node…">
+        <div v-if="!specs.length" class="muted">Memuat spesifikasi node…</div>
+        <div v-for="group in categories" :key="group.name" class="group">
+          <div class="group-title">{{ group.label }}</div>
+          <div v-for="spec in group.items" :key="spec.type" class="catalog-item" draggable="true"
+            @dragstart="onCatalogDragStart($event, spec)" @dblclick="addNodeCenter(spec)" :title="spec.description">
+            {{ spec.title }}
           </div>
-          <div class="node-body">
-            <span class="tag">{{ n.type }}</span>
-            <span class="badge" :class="statusOf(n.id)">{{ statusOf(n.id) }}</span>
+        </div>
+      </aside>
+
+      <section class="canvas-wrap" @dragover.prevent @drop.prevent="onCanvasDrop" @mousedown="onCanvasMouseDown">
+        <button class="fab fab-left" @click="showSidebar = !showSidebar"
+          :title="showSidebar ? 'Sembunyikan Katalog' : 'Tampilkan Katalog'">
+          ☰
+        </button>
+        <button class="fab fab-right" @click="showInspector = !showInspector"
+          :title="showInspector ? 'Sembunyikan Inspector' : 'Tampilkan Inspector'">
+          ⚙
+        </button>
+        <div id="canvas"
+          :style="{ transform: 'scale(' + scale + ')', width: canvasSize + 'px', height: canvasSize + 'px' }">
+          <svg class="edges" :width="canvasSize" :height="canvasSize">
+            <g v-for="(c, i) in connections" :key="i">
+              <path :d="pathFor(c)" class="edge"></path>
+              <path :d="pathFor(c)" class="edge-hit" @click.stop="removeConnection(i)">
+                <title>Klik untuk hapus koneksi</title>
+              </path>
+            </g>
+            <path v-if="linking" :d="tempPath" class="edge-temp"></path>
+          </svg>
+
+          <div v-for="n in nodes" :key="n.id" class="node" :class="nodeClass(n)"
+            :style="{ left: n.x + 'px', top: n.y + 'px' }" @mousedown.stop="onNodeMouseDown($event, n)">
+            <div class="port in" :class="{ active: !!linking }" title="Input" @mousedown.stop @click.stop="onPortIn(n)">
+            </div>
+            <div class="node-head">
+              <span class="node-title">{{ n.title }}</span>
+              <button class="icon" @mousedown.stop @click.stop="removeNode(n.id)">✕</button>
+            </div>
+            <div class="node-body">
+              <span class="tag">{{ n.type }}</span>
+              <span class="badge" :class="statusOf(n.id)">{{ statusOf(n.id) }}</span>
+            </div>
+            <div class="node-actions">
+              <button title="Run sampai node ini" @mousedown.stop @click.stop="run(n.id)">▶</button>
+              <button title="Lihat output" @mousedown.stop @click.stop="viewNode(n.id)">👁</button>
+              <button v-if="hasFile(n.id)" title="Unduh hasil export" @mousedown.stop
+                @click.stop="downloadNode(n.id)">📥</button>
+            </div>
+            <div class="port out" title="Output — klik lalu klik port IN tujuan" @mousedown.stop
+              @click.stop="onPortOut(n)"></div>
           </div>
-          <div class="node-actions">
-            <button title="Run sampai node ini" @mousedown.stop @click.stop="run(n.id)">▶</button>
-            <button title="Lihat output" @mousedown.stop @click.stop="viewNode(n.id)">👁</button>
-            <button v-if="hasFile(n.id)" title="Unduh hasil export" @mousedown.stop @click.stop="downloadNode(n.id)">📥</button>
+        </div>
+        <div class="hint" v-if="linking">⚡ Klik port IN node tujuan… (Esc untuk batal)</div>
+        <div class="zoom">
+          <button @click="scale = Math.max(0.4, scale - 0.1)">−</button>
+          <span>{{ Math.round(scale * 100) }}%</span>
+          <button @click="scale = Math.min(1.8, scale + 0.1)">+</button>
+          <button @click="scale = 1">⟲</button>
+        </div>
+      </section>
+
+      <aside class="inspector" v-show="showInspector">
+        <h3>Inspector</h3>
+        <div v-if="!selectedNode" class="muted">Pilih node di canvas untuk mengubah parameter.</div>
+        <div v-else>
+          <div class="insp-title">{{ selectedNode.title }}</div>
+          <div class="insp-id">{{ selectedNode.id }}</div>
+          <button v-if="selectedNode.type === 'python_script'" @click="pandasDocModal = true" class="btn-help"
+            style="margin-bottom: 15px; width: 100%; background: #0ea5e9; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer;">
+            📖 Cara Penggunaan Pandas
+          </button>
+          <div v-for="field in selectedSchema" :key="field.name" class="field">
+            <label>{{ field.label }}</label>
+            <select v-if="field.type === 'select'" v-model="selectedNode.config[field.name]">
+              <option v-for="opt in field.options" :key="opt" :value="opt">{{ opt }}</option>
+            </select>
+            <textarea v-else-if="field.type === 'textarea' || field.type === 'code'" rows="7"
+              :class="{ code: field.type === 'code' }" v-model="selectedNode.config[field.name]"></textarea>
+            <input v-else-if="field.type === 'checkbox'" type="checkbox" v-model="selectedNode.config[field.name]">
+            <template v-else-if="field.type === 'file'">
+              <input type="file" @change="onUpload($event, field)">
+              <small class="muted">{{ selectedNode.config[field.target || 'filePath'] || 'belum ada file' }}</small>
+            </template>
+            <input v-else :type="field.type === 'password' ? 'password' : (field.type === 'number' ? 'number' : 'text')"
+              v-model="selectedNode.config[field.name]">
           </div>
-          <div class="port out" title="Output — klik lalu klik port IN tujuan" @mousedown.stop @click.stop="onPortOut(n)"></div>
+          <div v-if="nodeStatus[selectedNode.id] && nodeStatus[selectedNode.id].error" class="err-box">
+            {{ nodeStatus[selectedNode.id].error }}
+          </div>
+        </div>
+      </aside>
+    </main>
+
+    <footer class="logs" :class="{ collapsed: !showLogs }">
+      <div class="logs-head" @click="showLogs = !showLogs">
+        <strong>Execution Logs ({{ logs.length }})</strong><span>{{ showLogs ? '▾' : '▸' }}</span>
+      </div>
+      <div class="logs-body" v-show="showLogs">
+        <div v-for="(l, i) in logs" :key="i" class="log-line" :class="l.level">[{{ l.level }}] {{ l.message }}</div>
+        <div v-if="!logs.length" class="muted">Belum ada eksekusi.</div>
+      </div>
+    </footer>
+
+    <!-- Preview -->
+    <div class="modal" v-if="preview.open" @click.self="preview.open = false">
+      <div class="modal-box wide">
+        <div class="modal-head">
+          <strong>📊 {{ preview.title }}</strong>
+          <span class="muted">{{ preview.total }} baris<span v-if="preview.truncated"> (menampilkan {{
+              preview.rows.length }})</span></span>
+          <button class="icon" @click="preview.open = false">✕</button>
+        </div>
+        <div class="modal-body">
+          <table v-if="preview.rows.length">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th v-for="c in preview.columns" :key="c.name">{{ c.name }}<small>{{ c.dtype }}</small></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="(row, idx) in preview.rows" :key="idx">
+                <td class="idx">{{ idx + 1 }}</td>
+                <td v-for="c in preview.columns" :key="c.name">{{ fmt(row[c.name]) }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div v-else class="muted">Output kosong.</div>
         </div>
       </div>
-      <div class="hint" v-if="linking">⚡ Klik port IN node tujuan… (Esc untuk batal)</div>
-      <div class="zoom">
-        <button @click="scale = Math.max(0.4, scale - 0.1)">−</button>
-        <span>{{ Math.round(scale * 100) }}%</span>
-        <button @click="scale = Math.min(1.8, scale + 0.1)">+</button>
-        <button @click="scale = 1">⟲</button>
-      </div>
-    </section>
+    </div>
 
-    <aside class="inspector">
-      <h3>Inspector</h3>
-      <div v-if="!selectedNode" class="muted">Pilih node di canvas untuk mengubah parameter.</div>
-      <div v-else>
-        <div class="insp-title">{{ selectedNode.title }}</div>
-        <div class="insp-id">{{ selectedNode.id }}</div>
-        <div v-for="field in selectedSchema" :key="field.name" class="field">
-          <label>{{ field.label }}</label>
-          <select v-if="field.type === 'select'" v-model="selectedNode.config[field.name]">
-            <option v-for="opt in field.options" :key="opt" :value="opt">{{ opt }}</option>
-          </select>
-          <textarea v-else-if="field.type === 'textarea' || field.type === 'code'" rows="7"
-                    :class="{ code: field.type === 'code' }" v-model="selectedNode.config[field.name]"></textarea>
-          <input v-else-if="field.type === 'checkbox'" type="checkbox" v-model="selectedNode.config[field.name]">
-          <template v-else-if="field.type === 'file'">
-            <input type="file" @change="onUpload($event, field)">
-            <small class="muted">{{ selectedNode.config[field.target || 'filePath'] || 'belum ada file' }}</small>
-          </template>
-          <input v-else :type="field.type === 'password' ? 'password' : (field.type === 'number' ? 'number' : 'text')"
-                 v-model="selectedNode.config[field.name]">
+    <!-- Python -->
+    <div class="modal" v-if="pythonModal.open" @click.self="pythonModal.open = false">
+      <div class="modal-box wide">
+        <div class="modal-head"><strong>🐍 Generated Python Script</strong>
+          <button class="btn" @click="copyPython">Copy</button>
+          <button class="icon" @click="pythonModal.open = false">✕</button>
         </div>
-        <div v-if="nodeStatus[selectedNode.id] && nodeStatus[selectedNode.id].error" class="err-box">
-          {{ nodeStatus[selectedNode.id].error }}
+        <div class="modal-body">
+          <pre class="code-view">{{ pythonModal.code }}</pre>
         </div>
       </div>
-    </aside>
-  </main>
-
-  <footer class="logs" :class="{ collapsed: !showLogs }">
-    <div class="logs-head" @click="showLogs = !showLogs">
-      <strong>Execution Logs ({{ logs.length }})</strong><span>{{ showLogs ? '▾' : '▸' }}</span>
     </div>
-    <div class="logs-body" v-show="showLogs">
-      <div v-for="(l, i) in logs" :key="i" class="log-line" :class="l.level">[{{ l.level }}] {{ l.message }}</div>
-      <div v-if="!logs.length" class="muted">Belum ada eksekusi.</div>
-    </div>
-  </footer>
 
-  <!-- Preview -->
-  <div class="modal" v-if="preview.open" @click.self="preview.open = false">
-    <div class="modal-box wide">
-      <div class="modal-head">
-        <strong>📊 {{ preview.title }}</strong>
-        <span class="muted">{{ preview.total }} baris<span v-if="preview.truncated"> (menampilkan {{ preview.rows.length }})</span></span>
-        <button class="icon" @click="preview.open = false">✕</button>
-      </div>
-      <div class="modal-body">
-        <table v-if="preview.rows.length">
-          <thead><tr><th>#</th><th v-for="c in preview.columns" :key="c.name">{{ c.name }}<small>{{ c.dtype }}</small></th></tr></thead>
-          <tbody>
-            <tr v-for="(row, idx) in preview.rows" :key="idx">
-              <td class="idx">{{ idx + 1 }}</td>
-              <td v-for="c in preview.columns" :key="c.name">{{ fmt(row[c.name]) }}</td>
-            </tr>
-          </tbody>
-        </table>
-        <div v-else class="muted">Output kosong.</div>
+    <!-- Open DB -->
+    <div class="modal" v-if="openModal.open" @click.self="openModal.open = false">
+      <div class="modal-box">
+        <div class="modal-head"><strong>📂 Workflow Tersimpan</strong><button class="icon"
+            @click="openModal.open = false">✕</button></div>
+        <div class="modal-body">
+          <div v-for="w in openModal.items" :key="w.id" class="wf-row" @click="loadWorkflow(w.id)">
+            <span>{{ w.name }}</span><small class="muted">{{ w.nodes }} node · {{ w.updated_at }}</small>
+          </div>
+          <div v-if="!openModal.items.length" class="muted">Belum ada workflow tersimpan.</div>
+        </div>
       </div>
     </div>
+
+    <!-- Modal Panduan Pandas -->
+    <div class="modal-overlay" v-if="pandasDocModal" @click.self="pandasDocModal = false"
+      style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;">
+      <div class="modal-content"
+        style="background: white; padding: 20px; border-radius: 8px; width: 700px; max-width: 90%; max-height: 85vh; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+
+        <h3 style="margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 10px;">📖 Panduan Script Pandas</h3>
+
+        <p>Di dalam node ini, data dari node sebelumnya secara otomatis ditampung dalam variabel
+          <strong><code>df</code></strong> (Pandas DataFrame).</p>
+
+        <ul style="line-height: 1.8; padding-left: 20px; font-size: 0.95em;">
+          <li><strong>Melihat Data:</strong> <code>df.head()</code></li>
+          <li><strong>Membuat Kolom Baru:</strong> <code>df['total'] = df['harga'] * df['qty']</code></li>
+
+          <li><strong>Filter Baris (Multi Kondisi):</strong> Gunakan <code>&</code> (AND) atau <code>|</code> (OR) dalam
+            kurung.<br>
+            <code>df = df[(df['segmen'] == 'UMKM') & (df['total_harga'] > 1000000)]</code>
+          </li>
+
+          <li><strong>Select Distinct:</strong> Menghapus baris duplikat berdasarkan kolom tertentu.<br>
+            <code>df = df.drop_duplicates(subset=['kolom_id'])</code>
+          </li>
+
+          <li><strong>Rename Kolom:</strong> Mengubah nama kolom lama menjadi nama baru.<br>
+            <code>df = df.rename(columns={'nama_lama': 'nama_baru', 'harga_lama': 'harga_baru'})</code>
+          </li>
+
+          <li><strong>Format Date & Number:</strong> Mengubah tampilan format teks.<br>
+            <em>Date (ke String DD-MM-YYYY):</em>
+            <code>df['tanggal'] = pd.to_datetime(df['tanggal']).dt.strftime('%d-%m-%Y')</code><br>
+            <em>Number (Pemisah ribuan):</em>
+            <code>df['harga'] = df['harga'].apply(lambda x: "{:,.0f}".format(x))</code>
+          </li>
+
+          <li><strong>Filter / Select Kolom:</strong> Mempertahankan kolom tertentu saja.<br>
+            <code>df = df[['kolom1', 'kolom2', 'kolom3']]</code>
+          </li>
+
+          <li><strong>Agregasi Multi-Kolom & Multi-Fungsi:</strong><br>
+            <code>df = df.groupby(['kategori', 'wilayah']).agg({'qty': 'sum', 'id': 'count', 'nama': lambda x: ', '.join(x.dropna().astype(str))}).reset_index()</code>
+          </li>
+
+          <li><strong>Sumifs / Countifs (Kondisional):</strong><br>
+            <em>Sumif:</em> <code>total = df.loc[df['status'] == 'Aktif', 'harga'].sum()</code><br>
+            <em>Countif:</em> <code>jumlah = df.loc[(df['status'] == 'Aktif') & (df['qty'] > 10), 'id'].count()</code>
+          </li>
+
+          <li><strong>Merge (Join Tabel):</strong><br>
+            <code>df = pd.merge(df, df_lain, on='kolom_kunci', how='left')</code>
+          </li>
+
+          <li><strong>Pivot Table (Baris ke Kolom):</strong><br>
+            <code>df = pd.pivot_table(df, values='total_harga', index='tanggal', columns='kategori', aggfunc='sum').reset_index()</code>
+          </li>
+
+          <li><strong>Melt (Kolom ke Baris / Unpivot):</strong><br>
+            <code>df = pd.melt(df, id_vars=['tanggal'], value_vars=['produk_A', 'produk_B'], var_name='nama_produk', value_name='penjualan')</code>
+          </li>
+        </ul>
+
+        <div
+          style="background: #f8fafc; padding: 10px; border-left: 4px solid #f59e0b; margin-top: 15px; font-size: 0.9em;">
+          <strong>Penting:</strong> Modifikasi harus disimpan kembali ke variabel <code>df</code>. Gunakan
+          <code>.reset_index()</code> setelah <em>group</em> atau <em>pivot</em> agar format tabel tetap rata untuk
+          diteruskan ke node selanjutnya.
+        </div>
+
+        <div style="text-align: right; margin-top: 20px;">
+          <button @click="pandasDocModal = false"
+            style="padding: 8px 16px; cursor: pointer; border: 1px solid #ccc; background: white; border-radius: 4px;">Tutup</button>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="toast" v-if="toast" :class="toast.type">{{ toast.message }}</div>
   </div>
-
-  <!-- Python -->
-  <div class="modal" v-if="pythonModal.open" @click.self="pythonModal.open = false">
-    <div class="modal-box wide">
-      <div class="modal-head"><strong>🐍 Generated Python Script</strong>
-        <button class="btn" @click="copyPython">Copy</button>
-        <button class="icon" @click="pythonModal.open = false">✕</button>
-      </div>
-      <div class="modal-body"><pre class="code-view">{{ pythonModal.code }}</pre></div>
-    </div>
-  </div>
-
-  <!-- Open DB -->
-  <div class="modal" v-if="openModal.open" @click.self="openModal.open = false">
-    <div class="modal-box">
-      <div class="modal-head"><strong>📂 Workflow Tersimpan</strong><button class="icon" @click="openModal.open = false">✕</button></div>
-      <div class="modal-body">
-        <div v-for="w in openModal.items" :key="w.id" class="wf-row" @click="loadWorkflow(w.id)">
-          <span>{{ w.name }}</span><small class="muted">{{ w.nodes }} node · {{ w.updated_at }}</small>
-        </div>
-        <div v-if="!openModal.items.length" class="muted">Belum ada workflow tersimpan.</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="toast" v-if="toast" :class="toast.type">{{ toast.message }}</div>
-</div>
-<script src="js/app.js"></script>
+  <script src="js/app.js"></script>
 </body>
+
 </html>

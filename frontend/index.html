@@ -99,9 +99,17 @@
         <div v-else>
           <div class="insp-title">{{ selectedNode.title }}</div>
           <div class="insp-id">{{ selectedNode.id }}</div>
+          <p v-if="selectedSpec && selectedSpec.description"
+            style="font-size: 12px; color: #64748b; background: #f1f5f9; padding: 8px; border-radius: 6px; margin-top: 4px; margin-bottom: 12px; line-height: 1.4;">
+            {{ selectedSpec.description }}
+          </p>
           <button v-if="selectedNode.type === 'python_script'" @click="pandasDocModal = true" class="btn-help"
             style="margin-bottom: 15px; width: 100%; background: #0ea5e9; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer;">
             📖 Cara Penggunaan Pandas
+          </button>
+          <button v-if="selectedNode.type === 'export_excel'" @click="excelFormatModal = true" class="btn-help"
+            style="margin-bottom: 15px; width: 100%; background: #10b981; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer;">
+            📊 Contoh Custom Format Excel
           </button>
           <div v-for="field in selectedSchema" :key="field.name" class="field">
             <label>{{ field.label }}</label>
@@ -200,7 +208,8 @@
         <h3 style="margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 10px;">📖 Panduan Script Pandas</h3>
 
         <p>Di dalam node ini, data dari node sebelumnya secara otomatis ditampung dalam variabel
-          <strong><code>df</code></strong> (Pandas DataFrame).</p>
+          <strong><code>df</code></strong> (Pandas DataFrame).
+        </p>
 
         <ul style="line-height: 1.8; padding-left: 20px; font-size: 0.95em;">
           <li><strong>Melihat Data:</strong> <code>df.head()</code></li>
@@ -261,6 +270,90 @@
 
         <div style="text-align: right; margin-top: 20px;">
           <button @click="pandasDocModal = false"
+            style="padding: 8px 16px; cursor: pointer; border: 1px solid #ccc; background: white; border-radius: 4px;">Tutup</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Modal Panduan Custom Format Excel -->
+    <div class="modal-overlay" v-if="excelFormatModal" @click.self="excelFormatModal = false"
+      style="position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;">
+      <div class="modal-content"
+        style="background: white; padding: 20px; border-radius: 8px; width: 750px; max-width: 90%; max-height: 85vh; overflow-y: auto; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+
+        <h3 style="margin-top: 0; border-bottom: 1px solid #eee; padding-bottom: 10px;">📊 Panduan Custom Format Excel
+          (`formatConfig`)</h3>
+
+        <p>Masukkan konfigurasi dengan format <code>nama_kolom:format</code> yang dipisahkan koma pada input
+          <strong>Format Kolom</strong> di inspector.
+        </p>
+        <p><em>Contoh pengisian:</em> <code>tanggal_lahir:YYYY-MM-DD, penghasilan:Rp #,##0, diskon:0.00%</code></p>
+
+        <h4 style="margin-bottom: 8px; color: #334155;">Daftar Referensi Format:</h4>
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.9em; text-align: left;">
+          <thead>
+            <tr style="background: #f8fafc; border-bottom: 2px solid #e2e8f0;">
+              <th style="padding: 8px; border: 1px solid #e2e8f0;">Kategori</th>
+              <th style="padding: 8px; border: 1px solid #e2e8f0;">Format String</th>
+              <th style="padding: 8px; border: 1px solid #e2e8f0;">Contoh Hasil</th>
+              <th style="padding: 8px; border: 1px solid #e2e8f0;">Keterangan</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #e2e8f0;">Tanggal</td>
+              <td style="padding: 8px; border: 1px solid #e2e8f0;"><code>YYYY-MM-DD</code></td>
+              <td style="padding: 8px; border: 1px solid #e2e8f0;">2026-11-14</td>
+              <td style="padding: 8px; border: 1px solid #e2e8f0;">Standar internasional</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #e2e8f0;">Tanggal</td>
+              <td style="padding: 8px; border: 1px solid #e2e8f0;"><code>DD/MM/YYYY</code></td>
+              <td style="padding: 8px; border: 1px solid #e2e8f0;">14/11/2026</td>
+              <td style="padding: 8px; border: 1px solid #e2e8f0;">Format Indonesia</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #e2e8f0;">Mata Uang</td>
+              <td style="padding: 8px; border: 1px solid #e2e8f0;"><code>"Rp" #,##0</code></td>
+              <td style="padding: 8px; border: 1px solid #e2e8f0;">Rp 1.500.000</td>
+              <td style="padding: 8px; border: 1px solid #e2e8f0;">Rupiah tanpa desimal</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #e2e8f0;">Mata Uang</td>
+              <td style="padding: 8px; border: 1px solid #e2e8f0;"><code>"Rp" #,##0.00</code></td>
+              <td style="padding: 8px; border: 1px solid #e2e8f0;">Rp 1.500.000,00</td>
+              <td style="padding: 8px; border: 1px solid #e2e8f0;">Rupiah dengan 2 desimal</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #e2e8f0;">Angka</td>
+              <td style="padding: 8px; border: 1px solid #e2e8f0;"><code>#,##0</code></td>
+              <td style="padding: 8px; border: 1px solid #e2e8f0;">123,456</td>
+              <td style="padding: 8px; border: 1px solid #e2e8f0;">Pemisah ribuan</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #e2e8f0;">Persentase</td>
+              <td style="padding: 8px; border: 1px solid #e2e8f0;"><code>0.00%</code></td>
+              <td style="padding: 8px; border: 1px solid #e2e8f0;">12.50%</td>
+              <td style="padding: 8px; border: 1px solid #e2e8f0;">Format persen desimal</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px; border: 1px solid #e2e8f0;">Teks Murni</td>
+              <td style="padding: 8px; border: 1px solid #e2e8f0;"><code>@</code></td>
+              <td style="padding: 8px; border: 1px solid #e2e8f0;">12345</td>
+              <td style="padding: 8px; border: 1px solid #e2e8f0;">Memaksa format string</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div
+          style="background: #f8fafc; padding: 10px; border-left: 4px solid #10b981; margin-top: 15px; font-size: 0.9em;">
+          <strong>Tips:</strong> Jika kolom pengaturan format dikosongkan, Excel akan menggunakan format bawaan
+          (default) dari data tabel secara mentah tanpa modifikasi tambahan.
+        </div>
+
+        <div style="text-align: right; margin-top: 20px;">
+          <button @click="excelFormatModal = false"
             style="padding: 8px 16px; cursor: pointer; border: 1px solid #ccc; background: white; border-radius: 4px;">Tutup</button>
         </div>
 

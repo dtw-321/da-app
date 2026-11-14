@@ -10,6 +10,7 @@ createApp({
   setup() {
     const specs = ref([]), nodes = ref([]), connections = ref([]);
     const pandasDocModal = ref(false);
+    const excelFormatModal = ref(false);
     const selectedId = ref(null), results = ref({}), nodeStatus = ref({}), logs = ref([]);
     const running = ref(false), search = ref(''), scale = ref(1), showLogs = ref(true);
     const workflowId = ref(null), workflowName = ref('Untitled Workflow');
@@ -47,10 +48,17 @@ createApp({
 
     /* ---------------- computed ---------------- */
     const selectedNode = computed(() => nodes.value.find(n => n.id === selectedId.value) || null);
+    const selectedSpec = computed(() => {
+      if (!selectedNode.value) return null;
+      return specs.value.find(s => s.type === selectedNode.value.type) || null;
+    });
+    // const selectedSchema = computed(() => {
+    //   if (!selectedNode.value) return [];
+    //   const spec = specs.value.find(s => s.type === selectedNode.value.type);
+    //   return spec ? spec.config_schema : [];
+    // });
     const selectedSchema = computed(() => {
-      if (!selectedNode.value) return [];
-      const spec = specs.value.find(s => s.type === selectedNode.value.type);
-      return spec ? spec.config_schema : [];
+      return selectedSpec.value ? selectedSpec.value.config_schema : [];
     });
     const categories = computed(() => {
       const keyword = search.value.toLowerCase();
@@ -310,7 +318,7 @@ createApp({
       specs, nodes, connections, selectedId, selectedNode, selectedSchema, results, nodeStatus, logs,
       running, search, scale, showLogs, workflowName, workflowId, linking, pointer, toast, preview,
       pythonModal, openModal, categories, tempPath, canvasSize: CANVAS_SIZE,showSidebar, showInspector,
-      pandasDocModal,
+      pandasDocModal,excelFormatModal,selectedSpec,
       onCatalogDragStart, onCanvasDrop, addNodeCenter, onNodeMouseDown, onCanvasMouseDown,
       onPortOut, onPortIn, removeNode, removeConnection, clearCanvas, pathFor, nodeClass, statusOf,
       run, viewNode, hasFile, downloadNode, fmt, saveWorkflow, openList, loadWorkflow,

@@ -34,6 +34,7 @@ def get_node_specs() -> List[Dict[str, Any]]:
             "type": node_type,
             "title": getattr(cls, "title", node_type.replace("_", " ").title()),
             "category": getattr(cls, "category", "transforms"),
+            "description": getattr(cls, "description", ""),
             "config_schema": getattr(cls, "config_schema", [])
         })
     return specs
